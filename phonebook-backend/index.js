@@ -1,7 +1,9 @@
 const express = require('express');
 const app = express();
 
-const persons = [
+app.use(express.json());
+
+let persons = [
   {
     id: 1,
     name: 'Arto Hellas',
@@ -26,6 +28,43 @@ const persons = [
 
 app.get('/api/persons', (request, response) => {
   response.json(persons);
+});
+
+app.get('/api/info', (request, response) => {
+  const entries = persons.length;
+  const time = new Date();
+
+  response.send(`phonebook has info for ${entries} people,  ${time}`);
+});
+
+app.get('/api/persons/:id', (request, response) => {
+  const id = Number(request.params.id);
+  const person = persons.find((person) => person.id === id);
+  if (person) {
+    return response.json(person);
+  } else {
+    return response.status(404).send('id not found');
+  }
+});
+
+app.delete('/api/persons/:id', (request, response) => {
+  const id = Number(request.params.id);
+  persons = persons.filter((person) => person.id === id);
+  response.status(204).end();
+});
+
+app.post('/api/persons', (request, response) => {
+  const person = request.body;
+  const numberAvailability = persons.find((p) => p.number === person.number);
+
+  if (person.name && person.number && !numberAvailability) {
+    const id = Math.floor(Math.random() * 100);
+    person.id = id;
+    persons.push(person);
+    response.json(person);
+  } else {
+    response.status(400).send('Number is already registered');
+  }
 });
 
 const PORT = 3001;
