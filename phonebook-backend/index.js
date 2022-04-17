@@ -51,20 +51,25 @@ app.delete('/api/persons/:id', (request, response, next) => {
     });
 });
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
   const { name, number } = request.body;
 
-  if (name && number) {
-    const person = new Person({
-      name: name,
-      number: number,
-    });
+  const person = new Person({
+    name,
+    number,
+  });
 
-    person.save().then((savedPerson) => {
-      response.json(savedPerson);
-    });
+  const phoneValidator = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
+
+  if (number.match(phoneValidator)) {
+    person
+      .save()
+      .then((savedPerson) => {
+        response.json(savedPerson);
+      })
+      .catch((error) => next(error));
   } else {
-    return response.status(400).json({ error: 'name or number missing' });
+    return response.status(400).end();
   }
 });
 
@@ -86,7 +91,9 @@ const errorHandler = (error, request, response, next) => {
   console.error(error.message);
 
   if (error.name === 'CastError') {
-    return response.status(400).send({ error: 'malformed id' });
+    return response.status(400).json({ error: 'malformed id' });
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message });
   }
 
   next(error);
